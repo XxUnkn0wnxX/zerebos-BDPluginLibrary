@@ -10,6 +10,25 @@ pluginConfig.version = pkg.version;
 
 const banner = buildMeta(pluginConfig) + "\n" + installScript;
 
+function getBetterDiscordFolder() {
+  if (process.platform === "win32") return path.join(process.env.APPDATA, "BetterDiscord");
+
+  if (process.platform === "darwin") {
+    const candidates = [
+      path.join(process.env.HOME, "Library", "Application Support", "BetterDiscord"),
+      path.join(process.env.HOME, "Library", "Preferences", "BetterDiscord")
+    ];
+
+    for (const candidate of candidates) {
+      if (fs.existsSync(candidate)) return candidate;
+    }
+
+    return candidates[0];
+  }
+
+  return path.join(process.env.XDG_CONFIG_HOME ? process.env.XDG_CONFIG_HOME : path.join(process.env.HOME, ".config"), "BetterDiscord");
+}
+
 module.exports = {
   mode: "development",
   target: "node",
@@ -53,7 +72,8 @@ module.exports = {
           /* eslint-disable no-console */
           if (!buildConfig.copyToBD) return;
 
-          const bdFolder = (process.platform == "win32" ? process.env.APPDATA : process.platform == "darwin" ? process.env.HOME + "/Library/Preferences" : process.env.XDG_CONFIG_HOME ? process.env.XDG_CONFIG_HOME : process.env.HOME + "/.config") + "/BetterDiscord/";
+          const bdFolder = getBetterDiscordFolder();
+          fs.mkdirSync(path.join(bdFolder, "plugins"), {recursive: true});
           fs.copyFileSync(info.targetPath, path.join(bdFolder, "plugins", filename));
           console.log(`\n\n✅ Copied to BD folder\n`);
         });

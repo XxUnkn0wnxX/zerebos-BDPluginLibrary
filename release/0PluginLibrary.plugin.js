@@ -1610,92 +1610,149 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
 /* harmony export */   "default": () => (/* binding */ Patcher)
 /* harmony export */ });
+/* harmony import */ var _logger__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./logger */ "./src/modules/logger.js");
+/* harmony import */ var _discordmodules__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./discordmodules */ "./src/modules/discordmodules.js");
+/* harmony import */ var _webpackmodules__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./webpackmodules */ "./src/modules/webpackmodules.js");
+
+
+
+
+
+function noop() {return () => undefined;}
+
+function isModuleInvalid(moduleToPatch) {
+    return (typeof moduleToPatch !== "object" && typeof moduleToPatch !== "function") || moduleToPatch === null;
+}
+
+function resolveModule(moduleToPatch) {
+    if (!moduleToPatch) return moduleToPatch;
+    if (typeof moduleToPatch === "function" || (typeof moduleToPatch === "object" && !Array.isArray(moduleToPatch))) return moduleToPatch;
+    if (typeof moduleToPatch === "string") return _discordmodules__WEBPACK_IMPORTED_MODULE_1__["default"][moduleToPatch] ?? _webpackmodules__WEBPACK_IMPORTED_MODULE_2__["default"].getByProps(moduleToPatch);
+    if (Array.isArray(moduleToPatch)) return _webpackmodules__WEBPACK_IMPORTED_MODULE_2__["default"].getByProps(...moduleToPatch);
+    return null;
+}
+
+function getDisplayName(moduleToPatch, fallbackName = "unknown target") {
+    if (!moduleToPatch) return fallbackName;
+    if (typeof moduleToPatch === "string") return moduleToPatch;
+    if (Array.isArray(moduleToPatch)) return moduleToPatch.join(", ");
+    return moduleToPatch.displayName || moduleToPatch.name || moduleToPatch.constructor?.displayName || moduleToPatch.constructor?.name || fallbackName;
+}
+
+function normalizePatchArgs(boundCaller, args) {
+    if (!boundCaller) {
+        const [caller, moduleToPatch, functionName, callback, options = {}] = args;
+        return {caller, moduleToPatch, functionName, callback, options};
+    }
+
+    const [first, second, third, fourth, fifth = {}] = args;
+
+    if (typeof first === "string" && typeof third === "string" && typeof fourth === "function") {
+        return {
+            caller: first,
+            moduleToPatch: second,
+            functionName: third,
+            callback: fourth,
+            options: fifth
+        };
+    }
+
+    return {
+        caller: boundCaller,
+        moduleToPatch: first,
+        functionName: second,
+        callback: third,
+        options: fourth ?? {}
+    };
+}
+
 /**
  * Patcher that can patch other functions allowing you to run code before, after or
  * instead of the original function. Can also alter arguments and return values.
  *
- * This is a modified version of what we have been working on in BDv2. {@link https://github.com/JsSucks/BetterDiscordApp/blob/master/client/src/modules/patcher.js}
+ * This wrapper keeps ZLib-compatible behavior on top of the newer BetterDiscord
+ * patcher API by tolerating stale/invalid patch targets instead of hard-throwing.
  *
  * @module Patcher
  */
-
 class Patcher {
 
-    // Use window._patches instead of local variables in case something tries to whack the lib
+    constructor(callerName = "") {
+        this.callerName = callerName;
+    }
+
     static get patches() {return [];}
 
-    /**
-     * Returns all the patches done by a specific caller
-     * @param {string} name - Name of the patch caller
-     * @method
-     */
     static getPatchesByCaller(name) {
         return BdApi.Patcher.getPatchesByCaller(name);
     }
 
-    /**
-     * Unpatches all patches passed, or when a string is passed unpatches all
-     * patches done by that specific caller.
-     * @param {Array|string} patches - Either an array of patches to unpatch or a caller name
-     */
+    getPatchesByCaller(name = this.callerName) {
+        return Patcher.getPatchesByCaller(name);
+    }
+
     static unpatchAll(patches) {
         BdApi.Patcher.unpatchAll(patches);
     }
 
-    /**
-     * Function with no arguments and no return value that may be called to revert changes made by {@link module:Patcher}, restoring (unpatching) original method.
-     * @callback module:Patcher~unpatch
-     */
+    unpatchAll(patches = this.callerName) {
+        Patcher.unpatchAll(patches);
+    }
 
-    /**
-     * A callback that modifies method logic. This callback is called on each call of the original method and is provided all data about original call. Any of the data can be modified if necessary, but do so wisely.
-     *
-     * The third argument for the callback will be `undefined` for `before` patches. `originalFunction` for `instead` patches and `returnValue` for `after` patches.
-     *
-     * @callback module:Patcher~patchCallback
-     * @param {object} thisObject - `this` in the context of the original function.
-     * @param {args} args - The original arguments of the original function.
-     * @param {(function|*)} extraValue - For `instead` patches, this is the original function from the module. For `after` patches, this is the return value of the function.
-     * @return {*} Makes sense only when using an `instead` or `after` patch. If something other than `undefined` is returned, the returned value replaces the value of `returnValue`. If used for `before` the return value is ignored.
-     */
+    static _patch(type, boundCaller, ...args) {
+        const {caller, moduleToPatch, functionName, callback, options = {}} = normalizePatchArgs(boundCaller, args);
+        const resolvedModule = resolveModule(moduleToPatch);
+        const targetName = `${caller || "unknown caller"} -> ${getDisplayName(moduleToPatch)}.${String(functionName)}`;
 
-    /**
-     * This method patches onto another function, allowing your code to run beforehand.
-     * Using this, you are also able to modify the incoming arguments before the original method is run.
-     *
-     * @param {string} caller - Name of the caller of the patch function. Using this you can undo all patches with the same name using {@link module:Patcher.unpatchAll}. Use `""` if you don't care.
-     * @param {object} moduleToPatch - Object with the function to be patched. Can also patch an object's prototype.
-     * @param {string} functionName - Name of the method to be patched
-     * @param {module:Patcher~patchCallback} callback - Function to run before the original method
-     * @return {module:Patcher~unpatch} Function with no arguments and no return value that should be called to cancel (unpatch) this patch. You should save and run it when your plugin is stopped.
-     */
-    static before(caller, moduleToPatch, functionName, callback) {return BdApi.Patcher.before(caller, moduleToPatch, functionName, callback);}
+        if (typeof caller !== "string") {
+            _logger__WEBPACK_IMPORTED_MODULE_0__["default"].warn("Patcher", `Skipping ${type} patch with invalid caller for ${targetName}`);
+            return noop();
+        }
 
-    /**
-     * This method patches onto another function, allowing your code to run after.
-     * Using this, you are also able to modify the return value, using the return of your code instead.
-     *
-     * @param {string} caller - Name of the caller of the patch function. Using this you can undo all patches with the same name using {@link module:Patcher.unpatchAll}. Use `""` if you don't care.
-     * @param {object} moduleToPatch - Object with the function to be patched. Can also patch an object's prototype.
-     * @param {string} functionName - Name of the method to be patched
-     * @param {module:Patcher~patchCallback} callback - Function to run instead of the original method
-     * @return {module:Patcher~unpatch} Function with no arguments and no return value that should be called to cancel (unpatch) this patch. You should save and run it when your plugin is stopped.
-     */
-    static after(caller, moduleToPatch, functionName, callback) {return BdApi.Patcher.after(caller, moduleToPatch, functionName, callback);}
+        if (typeof functionName !== "string") {
+            _logger__WEBPACK_IMPORTED_MODULE_0__["default"].warn("Patcher", `Skipping ${type} patch with invalid function name for ${targetName}`);
+            return noop();
+        }
 
-    /**
-     * This method patches onto another function, allowing your code to run instead.
-     * Using this, you are also able to modify the return value, using the return of your code instead.
-     *
-     * @param {string} caller - Name of the caller of the patch function. Using this you can undo all patches with the same name using {@link module:Patcher.unpatchAll}. Use `""` if you don't care.
-     * @param {object} moduleToPatch - Object with the function to be patched. Can also patch an object's prototype.
-     * @param {string} functionName - Name of the method to be patched
-     * @param {module:Patcher~patchCallback} callback - Function to run after the original method
-     * @return {module:Patcher~unpatch} Function with no arguments and no return value that should be called to cancel (unpatch) this patch. You should save and run it when your plugin is stopped.
-     */
-    static instead(caller, moduleToPatch, functionName, callback) {return BdApi.Patcher.instead(caller, moduleToPatch, functionName, callback);}
+        if (typeof callback !== "function") {
+            _logger__WEBPACK_IMPORTED_MODULE_0__["default"].warn("Patcher", `Skipping ${type} patch with invalid callback for ${targetName}`);
+            return noop();
+        }
 
+        if (isModuleInvalid(resolvedModule)) {
+            _logger__WEBPACK_IMPORTED_MODULE_0__["default"].warn("Patcher", `Skipping ${type} patch for ${targetName} because the module target could not be resolved.`);
+            return noop();
+        }
+
+        if (typeof resolvedModule[functionName] !== "function") {
+            if (options.forcePatch) {
+                resolvedModule[functionName] = function() {};
+            }
+            else {
+                _logger__WEBPACK_IMPORTED_MODULE_0__["default"].warn("Patcher", `Skipping ${type} patch for ${targetName} because ${String(functionName)} is not a function.`);
+                return noop();
+            }
+        }
+
+        try {
+            return BdApi.Patcher[type](caller, resolvedModule, functionName, callback);
+        }
+        catch (error) {
+            _logger__WEBPACK_IMPORTED_MODULE_0__["default"].stacktrace("Patcher", `Failed to apply ${type} patch for ${targetName}`, error);
+            return noop();
+        }
+    }
+
+    static before(...args) {return this._patch("before", "", ...args);}
+    before(...args) {return Patcher._patch("before", this.callerName, ...args);}
+
+    static after(...args) {return this._patch("after", "", ...args);}
+    after(...args) {return Patcher._patch("after", this.callerName, ...args);}
+
+    static instead(...args) {return this._patch("instead", "", ...args);}
+    instead(...args) {return Patcher._patch("instead", this.callerName, ...args);}
 }
+
 
 /***/ }),
 
