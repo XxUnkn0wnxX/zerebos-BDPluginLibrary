@@ -1,0 +1,94 @@
+name: Build generated library file
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - "src/**"
+      - "lib/**"
+      - "bin/**"
+      - "package.json"
+      - "package-lock.json"
+      - "webpack.config.js"
+      - ".babelrc"
+      - ".eslintrc"
+      - "jsconfig.json"
+      - "tsconfig.json"
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-sync:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout develop
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Prepare BetterDiscord build directory
+        run: mkdir -p "$HOME/.config/BetterDiscord/plugins"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build library
+        run: npm run build
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit generated library to develop
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git checkout develop
+          git add release/0PluginLibrary.plugin.js
+
+          if git diff --cached --quiet; then
+            echo "No generated library changes for develop."
+            exit 0
+          fi
+
+          git commit -m "Build generated library file" -m "Automation
+          - rebuild release/0PluginLibrary.plugin.js from develop source changes
+          - triggered only by develop source/build config updates"
+          git push origin HEAD:develop
+
+      - name: Sync generated library to master
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch origin develop master
+          git checkout master
+          git pull --ff-only origin master
+
+          git checkout origin/develop -- release/0PluginLibrary.plugin.js
+          git add release/0PluginLibrary.plugin.js
+
+          if git diff --cached --quiet; then
+            echo "No generated library changes for master."
+            exit 0
+          fi
+
+          git commit -m "Sync generated library file from develop" -m "Automation
+          - copy rebuilt release/0PluginLibrary.plugin.js from develop
+          - triggered by develop source/build config updates"
+          git push origin HEAD:master
