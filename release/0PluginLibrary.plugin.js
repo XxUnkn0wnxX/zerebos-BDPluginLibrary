@@ -6283,4 +6283,11 @@ window.ZeresPluginLibrary = PluginLibrary;
 module.exports.ZeresPluginLibrary = __webpack_exports__["default"];
 /******/ })()
 ;
+
+if (module.exports && module.exports.ZeresPluginLibrary) {
+  module.exports = module.exports.ZeresPluginLibrary;
+}
+else if (module.exports && module.exports.default) {
+  module.exports = module.exports.default;
+}
 /*@end@*/

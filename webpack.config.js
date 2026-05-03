@@ -9,6 +9,13 @@ const buildConfig = pkg.zplConfig;
 pluginConfig.version = pkg.version;
 
 const banner = buildMeta(pluginConfig) + "\n" + installScript;
+const exportNormalization = `
+if (module.exports && module.exports.ZeresPluginLibrary) {
+  module.exports = module.exports.ZeresPluginLibrary;
+}
+else if (module.exports && module.exports.default) {
+  module.exports = module.exports.default;
+}`;
 
 function getBetterDiscordFolder() {
   if (process.platform === "win32") return path.join(process.env.APPDATA, "BetterDiscord");
@@ -65,6 +72,7 @@ module.exports = {
   plugins: [
     new webpack.DefinePlugin({"process.env": {__LIBRARY_VERSION__: JSON.stringify(pkg.version)}}),
     new webpack.BannerPlugin({raw: true, banner: banner}),
+    new webpack.BannerPlugin({raw: true, banner: exportNormalization, footer: true}),
     new webpack.BannerPlugin({raw: true, banner: `/*@end@*/`, footer: true}),
     {
       apply: (compiler) => {
