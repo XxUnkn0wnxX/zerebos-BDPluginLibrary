@@ -1,6 +1,10 @@
 > [!CAUTION]
 > This library has reached end of life and is now considered deprecated and discontinued. It is recommended to convert over to using BetterDiscord's built-in API. If you find there are features missing, open a feature request in the BetterDiscord repository.
 
+> [!WARNING]
+> This fork is only being kept on limited life support for personal use and older plugins that still depend on ZeresPluginLibrary.
+> Do not use this library for new plugin development. These updates are only meant to keep legacy plugins running where practical, not to restore full long-term support.
+
 # ZeresPluginLibrary - [Download](https://betterdiscord.app/Download?id=9) 
 
 This is the repo for Zere's Plugin Library for BetterDiscord. You can follow development here. There will be more info and shit to come, but for now here ya go.
@@ -90,4 +94,3 @@ Boolean to determine if the built plugin should also be automatically copied ove
 **Default**: `false`
 
 ***
-
