@@ -5,7 +5,6 @@ import CSS from "../styles/updates.css";
 
 const fileSystem = __non_webpack_require__("fs");
 const path = __non_webpack_require__("path");
-const request = __non_webpack_require__("request");
 
 /**
  * Comparator that takes the current version and the remote version,
@@ -19,9 +18,17 @@ const request = __non_webpack_require__("request");
 const splitRegex = /[^\S\r\n]*?\r?(?:\r\n|\n)[^\S\r\n]*?\*[^\S\r\n]?/;
 const escapedAtRegex = /^\\@/;
 const HOUR_IN_MILLISECONDS = 1000 * 60 * 60;
+const UPDATE_FETCH_OPTIONS = {timeout: 10000};
 const pluginId = name => name + "-update-notice";
 const pending = [];
 const banner = {};
+
+async function fetchRemoteBody(url) {
+    const fetchMethod = BdApi?.Net?.fetch?.bind(BdApi.Net) ?? fetch;
+    const response = await fetchMethod(url, UPDATE_FETCH_OPTIONS);
+    if (!response?.ok) throw new Error(`Request failed with status ${response?.status ?? "unknown"}`);
+    return response.text();
+}
 
 
 /**
@@ -89,35 +96,18 @@ export default class PluginUpdater {
      * @param {string} updateLink - link to the raw text version of the plugin
      */
     static async hasUpdate(updateLink) {
-        const doit = (resolve, result) => {
-            try {
-                const plugin = this.getPlugin(updateLink);
-                const meta = this.parseMeta(result);
-                plugin.remoteVersion = meta.version;
-                const hasUpdate = plugin.comparator(plugin.version, plugin.remoteVersion);
-                if (hasUpdate) plugin.remote = result;
-                resolve(hasUpdate);
-            }
-            catch (err) {
-                resolve(false);
-            }
-        };
-        return new Promise(resolve => {
-            request(updateLink, (err, resp, result) => {
-                if (err) return resolve(false);
-
-                // If a direct url was used
-                if (resp.statusCode === 200) return doit(resolve, result);
-
-                // If an addon id and redirect was used
-                if (resp.statusCode === 302) {
-                    request(resp.headers.location, (error, response, body) => {
-                        if (error || response.statusCode !== 200) return resolve(false);
-                        return doit(resolve, body);
-                    });
-                }
-            });
-        });
+        try {
+            const result = await fetchRemoteBody(updateLink);
+            const plugin = this.getPlugin(updateLink);
+            const meta = this.parseMeta(result);
+            plugin.remoteVersion = meta.version;
+            const hasUpdate = plugin.comparator(plugin.version, plugin.remoteVersion);
+            if (hasUpdate) plugin.remote = result;
+            return hasUpdate;
+        }
+        catch {
+            return false;
+        }
     }
 
     /**

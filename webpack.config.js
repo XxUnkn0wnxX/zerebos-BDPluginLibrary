@@ -52,8 +52,7 @@ module.exports = {
   externals: {
     electron: `window.require("electron")`,
     fs: `window.require("fs")`,
-    path: `window.require("path")`,
-    request: `window.require("request")`
+    path: `window.require("path")`
   },
   resolve: {
     extensions: [".js"],
