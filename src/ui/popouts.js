@@ -226,7 +226,16 @@ function DiscordProviders({children, container}) {
     const {Hooks, ThemeStore, LayerProvider, ThemeContext} = Popouts.runtime;
     let theme;
     try {
-        if (ThemeStore && typeof Hooks?.useSyncExternalStore === "function") theme = Hooks.useSyncExternalStore([ThemeStore], () => ThemeStore.theme);
+        if (
+            ThemeStore
+            && typeof Hooks?.useSyncExternalStore === "function"
+            && typeof ThemeStore.addChangeListener === "function"
+        ) {
+            theme = Hooks.useSyncExternalStore((listener) => {
+                ThemeStore.addChangeListener(listener);
+                return () => ThemeStore.removeChangeListener?.(listener);
+            }, () => ThemeStore.theme);
+        }
         else theme = ThemeStore?.theme;
     }
     catch {
