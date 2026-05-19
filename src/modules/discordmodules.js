@@ -174,7 +174,14 @@ export default Utilities.memoizeObject({
     /* Popouts */
     get PopoutStack() {return WebpackModules.getByProps("open", "close", "closeAll");},
     get PopoutOpener() {return WebpackModules.getByProps("openPopout");},
-    get UserPopout() {return WebpackModules.getModule(m => m?.type?.toString?.().includes('Unexpected missing user'), {searchExports: true});},
+    get UserPopout() {
+        return BdApi.Components?.UserPopout
+            ?? WebpackModules.getModule(m => {
+                const source = m?.toString?.();
+                return source?.includes("isNonUserBot") && source.includes("onHide") && !source.includes("sidebar");
+            }, {searchExports: true})
+            ?? WebpackModules.getModule(m => m?.type?.toString?.().includes("Unexpected missing user"), {searchExports: true});
+    },
 
     /* Context Menus */
     get ContextMenuActions() {return WebpackModules.getByProps("openContextMenu");},

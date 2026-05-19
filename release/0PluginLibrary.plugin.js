@@ -553,7 +553,14 @@ __webpack_require__.r(__webpack_exports__);
     /* Popouts */
     get PopoutStack() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByProps("open", "close", "closeAll");},
     get PopoutOpener() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByProps("openPopout");},
-    get UserPopout() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getModule(m => m?.type?.toString?.().includes('Unexpected missing user'), {searchExports: true});},
+    get UserPopout() {
+        return BdApi.Components?.UserPopout
+            ?? _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getModule(m => {
+                const source = m?.toString?.();
+                return source?.includes("isNonUserBot") && source.includes("onHide") && !source.includes("sidebar");
+            }, {searchExports: true})
+            ?? _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getModule(m => m?.type?.toString?.().includes("Unexpected missing user"), {searchExports: true});
+    },
 
     /* Context Menus */
     get ContextMenuActions() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByProps("openContextMenu");},
@@ -4520,18 +4527,19 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-const {React, ReactDOM} = modules__WEBPACK_IMPORTED_MODULE_0__.DiscordModules;
+const React = modules__WEBPACK_IMPORTED_MODULE_0__.DiscordModules.React;
 const {useReducer, useEffect, useRef} = React;
-const AppLayer = modules__WEBPACK_IMPORTED_MODULE_0__.WebpackModules.getModule(m => Object.values(m).some(m => m?.displayName === "AppLayer"));
-const ReferencePositionLayer = modules__WEBPACK_IMPORTED_MODULE_0__.WebpackModules.getModule(m => m?.prototype?.calculatePositionStyle, {searchExports: true});
-// const PopoutCSSAnimator = WebpackModules.getByDisplayName("PopoutCSSAnimator");
-const LayerProvider = Object.values(AppLayer).find(m => m.displayName === "AppLayerProvider")?.().props.layerContext.Provider; // eslint-disable-line new-cap
-const ComponentDispatch = modules__WEBPACK_IMPORTED_MODULE_0__.WebpackModules.getModule(m => m.toString?.().includes("useContext") && m.toString?.().includes(".windowDispatch"), {searchExports: true});
-const ComponentActions = modules__WEBPACK_IMPORTED_MODULE_0__.WebpackModules.getModule(m => m.POPOUT_SHOW, {searchExports: true});
-const Popout = modules__WEBPACK_IMPORTED_MODULE_0__.WebpackModules.getModule(m => m?.defaultProps && m?.Animation, {searchExports: true});
-const ThemeContext = modules__WEBPACK_IMPORTED_MODULE_0__.WebpackModules.getModule(m => m?.toString?.().includes(".DARK") && m?.toString?.().includes("primaryColor") && m?.toString?.().includes("Provider"), {searchExports: true});
-const Hooks = modules__WEBPACK_IMPORTED_MODULE_0__.WebpackModules.getModule(m => m.useSyncExternalStore);
-const ThemeStore = modules__WEBPACK_IMPORTED_MODULE_0__.WebpackModules.getModule(m => m.theme);
+
+const getAppLayer = () => modules__WEBPACK_IMPORTED_MODULE_0__.WebpackModules.getModule(m => Object.values(m).some(v => v?.displayName === "AppLayer"));
+const getReferencePositionLayer = () => modules__WEBPACK_IMPORTED_MODULE_0__.WebpackModules.getModule(m => m?.prototype?.calculatePositionStyle, {searchExports: true});
+const getLayerProvider = (appLayer = getAppLayer()) => Object.values(appLayer ?? {}).find(m => m?.displayName === "AppLayerProvider")?.().props.layerContext?.Provider; // eslint-disable-line new-cap
+const getComponentDispatch = () => modules__WEBPACK_IMPORTED_MODULE_0__.WebpackModules.getModule(m => m.toString?.().includes("useContext") && m.toString?.().includes(".windowDispatch"), {searchExports: true});
+const getComponentActions = () => modules__WEBPACK_IMPORTED_MODULE_0__.WebpackModules.getModule(m => m.POPOUT_SHOW, {searchExports: true});
+const getPopoutComponent = () => modules__WEBPACK_IMPORTED_MODULE_0__.WebpackModules.getModule(m => m?.defaultProps && m?.Animation, {searchExports: true})
+    ?? modules__WEBPACK_IMPORTED_MODULE_0__.WebpackModules.getModule(m => m?.toString?.().includes("nudgeAlignIntoViewport") && m?.toString?.().includes("positionKey"), {searchExports: true});
+const getThemeContext = () => modules__WEBPACK_IMPORTED_MODULE_0__.WebpackModules.getModule(m => m?.toString?.().includes(".DARK") && m?.toString?.().includes("primaryColor") && m?.toString?.().includes("Provider"), {searchExports: true});
+const getHooksModule = () => modules__WEBPACK_IMPORTED_MODULE_0__.WebpackModules.getModule(m => typeof m?.useSyncExternalStore === "function");
+const getThemeStore = () => modules__WEBPACK_IMPORTED_MODULE_0__.WebpackModules.getModule(m => m.theme);
 
 const createStore = state => {
     const listeners = new Set();
@@ -4573,12 +4581,48 @@ const [setPopouts, usePopouts] = createStore([]);
 
 class Popouts {
 
+    static get runtime() {
+        return this._runtime || null;
+    }
+
+    static resolveRuntime() {
+        const ReactDOM = modules__WEBPACK_IMPORTED_MODULE_0__.DiscordModules.ReactDOM;
+        const appLayer = getAppLayer();
+        const runtime = {
+            ReactDOM,
+            ReferencePositionLayer: getReferencePositionLayer(),
+            LayerProvider: getLayerProvider(appLayer),
+            ComponentDispatch: getComponentDispatch(),
+            ComponentActions: getComponentActions(),
+            Popout: getPopoutComponent(),
+            ThemeContext: getThemeContext(),
+            Hooks: getHooksModule(),
+            ThemeStore: getThemeStore()
+        };
+
+        if (!runtime.ReactDOM || !runtime.ReferencePositionLayer || !runtime.Popout) return null;
+        return runtime;
+    }
+
+    static warmRuntime() {
+        void modules__WEBPACK_IMPORTED_MODULE_0__.DiscordModules.ReactDOM;
+        void modules__WEBPACK_IMPORTED_MODULE_0__.DiscordModules.UserPopout;
+        void modules__WEBPACK_IMPORTED_MODULE_0__.DiscordModules.ModalRoot;
+        void modules__WEBPACK_IMPORTED_MODULE_0__.DiscordModules.UserProfileModals;
+        void modules__WEBPACK_IMPORTED_MODULE_0__.DiscordClassModules.TooltipLayers;
+    }
+
     // static get AnimationTypes() {return AnimationTypes;}
 
     static initialize() {
-        return;
+        if (this._initialized) return true;
+        this.warmRuntime();
+        const runtime = this.resolveRuntime();
+        if (!React || !runtime) return false;
         this.dispose();
         this.popouts = 0;
+        this._initialized = true;
+        this._runtime = runtime;
 
         this.container = Object.assign(document.createElement("div"), {
             className: "ZeresPluginLibraryPopoutsRenderer",
@@ -4587,11 +4631,17 @@ class Popouts {
 
         this.layerContainer = Object.assign(document.createElement("div"), {
             id: "ZeresPluginLibraryPopouts",
-            className: modules__WEBPACK_IMPORTED_MODULE_0__.DiscordClassModules.TooltipLayers.layerContainer
+            className: modules__WEBPACK_IMPORTED_MODULE_0__.DiscordClassModules.TooltipLayers.layerContainer || "ZeresPluginLibraryPopoutsLayer"
         });
 
         document.body.append(this.container, this.layerContainer);
-        ReactDOM.render(React.createElement(PopoutsContainer), this.layerContainer);
+        if (typeof runtime.ReactDOM.createRoot === "function") {
+            this._reactRoot = runtime.ReactDOM.createRoot(this.layerContainer);
+            this._reactRoot.render(React.createElement(PopoutsContainer));
+            return true;
+        }
+        runtime.ReactDOM.render(React.createElement(PopoutsContainer), this.layerContainer);
+        return true;
     }
 
     /**
@@ -4605,12 +4655,17 @@ class Popouts {
      * @param {string} [options.align="top"] - Positioning relative to element
      */
     static showUserPopout(target, user, options = {}) {
-        const {position = "right", align = "top", guild = modules__WEBPACK_IMPORTED_MODULE_0__.DiscordModules.SelectedGuildStore.getGuildId(), channel = modules__WEBPACK_IMPORTED_MODULE_0__.DiscordModules.SelectedChannelStore.getChannelId()} = options;
+        if (!this.initialize()) return null;
+        if (!modules__WEBPACK_IMPORTED_MODULE_0__.DiscordModules.UserPopout) return null;
+
+        const currentUser = modules__WEBPACK_IMPORTED_MODULE_0__.DiscordModules.UserStore?.getCurrentUser?.();
+        const {position = "right", align = "top", guild = modules__WEBPACK_IMPORTED_MODULE_0__.DiscordModules.SelectedGuildStore?.getGuildId?.(), channel = modules__WEBPACK_IMPORTED_MODULE_0__.DiscordModules.SelectedChannelStore?.getChannelId?.()} = options;
         target = modules__WEBPACK_IMPORTED_MODULE_0__.DOMTools.resolveElement(target);
+        if (!target || !user?.id) return null;
         // if (target.getBoundingClientRect().right + 250 >= DOMTools.screenWidth && options.autoInvert) position = "left";
         // if (target.getBoundingClientRect().bottom + 400 >= DOMTools.screenHeight && options.autoInvert) align = "bottom";
         // if (target.getBoundingClientRect().top - 400 >= DOMTools.screenHeight && options.autoInvert) align = "top";
-        this.openPopout(target, {
+        return this.openPopout(target, {
             position: position,
             align: align,
             // animation: options.animation || Popouts.AnimationTypes.TRANSLATE,
@@ -4619,6 +4674,8 @@ class Popouts {
             spacing: options.spacing,
             render: (props) => {
                 return modules__WEBPACK_IMPORTED_MODULE_0__.DiscordModules.React.createElement(modules__WEBPACK_IMPORTED_MODULE_0__.DiscordModules.UserPopout, Object.assign({}, props, {
+                    user: user,
+                    currentUser: currentUser,
                     userId: user.id,
                     guildId: guild,
                     channelId: channel,
@@ -4639,6 +4696,9 @@ class Popouts {
      * @param {number} [options.spacing=8] - Spacing between target and popout
      */
     static openPopout(target, options) {
+        if (!this.initialize()) return null;
+        const {Popout, ReactDOM} = this.runtime;
+        if (!Popout || !ReactDOM) return null;
         const id = this.popouts++;
 
         setPopouts(popouts => popouts.concat({
@@ -4670,17 +4730,35 @@ class Popouts {
         modules__WEBPACK_IMPORTED_MODULE_0__.Patcher.unpatchAll("Popouts");
         const container = document.querySelector(".ZeresPluginLibraryPopoutsRenderer");
         const layerContainer = document.querySelector("#ZeresPluginLibraryPopouts");
-        if (container) ReactDOM.unmountComponentAtNode(container);
+        const ReactDOM = this.runtime?.ReactDOM;
+        this._initialized = false;
+        this.popouts = 0;
+        this._runtime = null;
+        if (this._reactRoot) {
+            this._reactRoot.unmount();
+            this._reactRoot = null;
+        }
+        else if (layerContainer && typeof ReactDOM?.unmountComponentAtNode === "function") ReactDOM.unmountComponentAtNode(layerContainer);
         if (container) container.remove();
         if (layerContainer) layerContainer.remove();
     }
 }
 
 function DiscordProviders({children, container}) {
-    const theme = Hooks.useSyncExternalStore([ThemeStore], () => ThemeStore.theme);
+    const {Hooks, ThemeStore, LayerProvider, ThemeContext} = Popouts.runtime;
+    let theme;
+    try {
+        if (ThemeStore && typeof Hooks?.useSyncExternalStore === "function") theme = Hooks.useSyncExternalStore([ThemeStore], () => ThemeStore.theme);
+        else theme = ThemeStore?.theme;
+    }
+    catch {
+        theme = ThemeStore?.theme;
+    }
+    const LayerWrapper = LayerProvider || React.Fragment;
+    const ThemeWrapper = ThemeContext || React.Fragment;
 
-    return React.createElement(LayerProvider, {value: [container]},
-                React.createElement(ThemeContext, {theme}, children)
+    return React.createElement(LayerWrapper, LayerProvider ? {value: [container]} : null,
+                React.createElement(ThemeWrapper, ThemeContext ? {theme} : null, children)
             );
 }
 
@@ -4695,11 +4773,13 @@ function PopoutsContainer() {
 
 function PopoutWrapper({render, popoutId, ...props}) {
     const popoutRef = useRef();
+    const {ReactDOM, ReferencePositionLayer, ComponentDispatch, ComponentActions} = Popouts.runtime;
 
     useEffect(() => {
         if (!popoutRef.current) return;
 
-        const node = ReactDOM.findDOMNode(popoutRef.current);
+        const node = typeof ReactDOM?.findDOMNode === "function" ? ReactDOM.findDOMNode(popoutRef.current) : null;
+        if (!(node instanceof Element)) return;
 
         const handleClick = ({target}) => {
             if (target === node || node.contains(target)) return;
@@ -4732,7 +4812,7 @@ function PopoutWrapper({render, popoutId, ...props}) {
     // }
 
     // eslint-disable-next-line new-cap
-    const ComponentDispatcher = ComponentDispatch();
+    const ComponentDispatcher = ComponentDispatch?.();
 
     return React.createElement(ReferencePositionLayer, Object.assign(props, {
         ref: popoutRef,
@@ -4742,10 +4822,10 @@ function PopoutWrapper({render, popoutId, ...props}) {
         id: "popout_" + popoutId,
         animation: 2,
         onMount() {
-            ComponentDispatcher.dispatch(ComponentActions.POPOUT_SHOW);
+            ComponentDispatcher?.dispatch?.(ComponentActions.POPOUT_SHOW);
         },
         onUnmount() {
-            ComponentDispatcher.dispatch(ComponentActions.POPOUT_HIDE);
+            ComponentDispatcher?.dispatch?.(ComponentActions.POPOUT_HIDE);
         },
         children: (props, ...p) => React.createElement(
             "div",
@@ -4756,8 +4836,6 @@ function PopoutWrapper({render, popoutId, ...props}) {
         )
     }));
 }
-
-
 
 
 /***/ }),
