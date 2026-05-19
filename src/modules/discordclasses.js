@@ -8,6 +8,7 @@ const getRaw = function(prop) {
 
 const getClass = function(prop) {
     if (!this.hasOwnProperty(prop)) return "";
+    if (typeof this[prop] !== "string") return this[prop];
     return this[prop].split(" ")[0];
 };
 
@@ -26,12 +27,24 @@ const DiscordModules = new Proxy(DiscordClassModules, {
     get: function(list, item) {
         if (item == "getRaw" || item == "getClass") return (module, prop) => DiscordModules[module][item]([prop]);
         if (list[item] === undefined) return new Proxy({}, {get: function() {return "";}});
-        return new Proxy(list[item], {
-            get: function(obj, prop) {
-                if (prop == "getRaw") return getRaw.bind(obj);
-                if (prop == "getClass") return getClass.bind(obj);
-                if (!obj.hasOwnProperty(prop)) return "";
-                return new DOMTools.ClassName(obj[prop]);
+        const source = list[item];
+        return new Proxy({}, {
+            get: function(_, prop) {
+                if (prop == "getRaw") return getRaw.bind(source);
+                if (prop == "getClass") return getClass.bind(source);
+                if (!source || !Object.prototype.hasOwnProperty.call(source, prop)) return "";
+                if (typeof source[prop] !== "string") return source[prop];
+                return new DOMTools.ClassName(source[prop]);
+            },
+            ownKeys: function() {
+                return source ? Reflect.ownKeys(source) : [];
+            },
+            getOwnPropertyDescriptor: function(_, prop) {
+                if (!source || !Object.prototype.hasOwnProperty.call(source, prop)) return undefined;
+                return {
+                    configurable: true,
+                    enumerable: true
+                };
             }
         });
     }

@@ -37,6 +37,23 @@ class SettingField extends Listenable {
 
     /** Fired when root node added to DOM */
     onAdded() {
+        if (typeof DiscordModules.ReactDOM?.createRoot === "function") {
+            this._reactRoot = DiscordModules.ReactDOM.createRoot(this.getElement());
+            this._reactRoot.render(DiscordModules.React.createElement(ReactSetting, Object.assign({
+                title: this.name,
+                type: this.type,
+                note: this.note,
+            }, this.props, {
+                ref: instance => {
+                    if (!instance || !this.props.onChange || this._didBindOnChange) return;
+                    this._didBindOnChange = true;
+                    instance.props.onChange = this.props.onChange(instance);
+                    instance.forceUpdate();
+                }
+            })));
+            return;
+        }
+
         const reactElement = DiscordModules.ReactDOM.render(DiscordModules.React.createElement(ReactSetting, Object.assign({
             title: this.name,
             type: this.type,
@@ -49,6 +66,12 @@ class SettingField extends Listenable {
 
     /** Fired when root node removed from DOM */
     onRemoved() {
+        this._didBindOnChange = false;
+        if (this._reactRoot) {
+            this._reactRoot.unmount();
+            this._reactRoot = null;
+            return;
+        }
         DiscordModules.ReactDOM.unmountComponentAtNode(this.getElement());
     }
 }
@@ -61,7 +84,11 @@ const TITLE = WebpackModules.getByProps("title", "dividerDefault")?.title ?? "ti
 class ReactSetting extends DiscordModules.React.Component {
     get noteElement() {
         const className = this.props.noteOnTop ? DiscordClasses.Margins.marginBottom8 : DiscordClasses.Margins.marginTop8;
-        return DiscordModules.React.createElement(DiscordModules.SettingsNote, {children: this.props.note, type: "description", className: className.toString()});
+        if (DiscordModules.SettingsNote) {
+            return DiscordModules.React.createElement(DiscordModules.SettingsNote, {children: this.props.note, type: "description", className: className.toString()});
+        }
+
+        return DiscordModules.React.createElement("div", {className: `bd-setting-note ${className}`.trim()}, this.props.note);
     }
 
     get dividerElement() {return DiscordModules.React.createElement("div", {className: DiscordClasses.Dividers.divider.add(DiscordClasses.Margins.marginTop20).toString()});}
@@ -83,15 +110,26 @@ class ReactSetting extends DiscordModules.React.Component {
             );
         }
         
-        return ce(DiscordModules.SettingsWrapper, {
-            className: DiscordClasses.Margins.marginTop20.toString(),
-            title: this.props.title,
-            children: [
-                this.props.noteOnTop ? this.noteElement : SettingElement,
-                this.props.noteOnTop ? SettingElement : this.noteElement,
-                this.dividerElement
-            ]
-        });
+        if (DiscordModules.SettingsWrapper) {
+            return ce(DiscordModules.SettingsWrapper, {
+                className: DiscordClasses.Margins.marginTop20.toString(),
+                title: this.props.title,
+                children: [
+                    this.props.noteOnTop ? this.noteElement : SettingElement,
+                    this.props.noteOnTop ? SettingElement : this.noteElement,
+                    this.dividerElement
+                ]
+            });
+        }
+
+        return ce("div", {className: `bd-setting-item ${DiscordClasses.Margins.marginTop20}`.trim()}, [
+            ce("div", {className: "bd-setting-header"},
+                ce("label", {className: TITLE}, this.props.title)
+            ),
+            this.props.noteOnTop ? this.noteElement : SettingElement,
+            this.props.noteOnTop ? SettingElement : this.noteElement,
+            this.dividerElement
+        ]);
     }
 }
 

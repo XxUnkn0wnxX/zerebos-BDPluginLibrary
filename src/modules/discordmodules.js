@@ -10,7 +10,7 @@ import WebpackModules from "./webpackmodules";
 
 export default Utilities.memoizeObject({
     get React() {return WebpackModules.getByProps("createElement", "cloneElement");},
-    get ReactDOM() {return WebpackModules.getByProps("render", "findDOMNode");},
+    get ReactDOM() {return BdApi.ReactDOM ?? WebpackModules.getByProps("createPortal", "flushSync") ?? WebpackModules.getByProps("render", "findDOMNode");},
     get Events() {return WebpackModules.getByPrototypes("setMaxListeners", "emit");},
 
     /* Guild Info, Stores, and Utilities */
@@ -70,7 +70,7 @@ export default Utilities.memoizeObject({
     get ColorShader() {return WebpackModules.getByProps("darken");},
     get TinyColor() {return WebpackModules.getByPrototypes("toRgb");},
     get ClassResolver() {return WebpackModules.getByProps("getClass");},
-    get ButtonData() {return WebpackModules.getModule(m => m.BorderColors, {searchExports: true});},
+    get ButtonData() {return BdApi.Components?.Button ?? WebpackModules.getModule(m => m.BorderColors, {searchExports: true});},
     get NavigationUtils() {
         return {
             transitionToGuild: WebpackModules.getByProps("transitionToGuildSync")?.transitionToGuildSync,
@@ -183,16 +183,16 @@ export default Utilities.memoizeObject({
 
     /* Misc */
     get ExternalLink() {return WebpackModules.getByRegex(/trusted/);},
-    get TextElement() {return WebpackModules.getModule(m => m?.Sizes?.SIZE_32 && m.Colors);},
+    get TextElement() {return BdApi.Components?.Text ?? WebpackModules.getModule(m => m?.Sizes?.SIZE_32 && m.Colors);},
     get Anchor() {return WebpackModules.getByDisplayName("Anchor");},
-    get Flex() {return WebpackModules.getByDisplayName("Flex");},
+    get Flex() {return BdApi.Components?.Flex ?? WebpackModules.getByDisplayName("Flex");},
     get FlexChild() {return WebpackModules.getByProps("Child");},
     get Clickable() {return WebpackModules.getByDisplayName("Clickable");},
     get Titles() {return WebpackModules.getByProps("Tags", "Sizes");},
     get HeaderBar() {return WebpackModules.getByDisplayName("HeaderBar");},
     get TabBar() {return WebpackModules.getByDisplayName("TabBar");},
-    get Tooltip() {return WebpackModules.getByPrototypes("renderTooltip");},
-    get Spinner() {return WebpackModules.getByDisplayName("Spinner");},
+    get Tooltip() {return BdApi.Components?.Tooltip ?? WebpackModules.getByPrototypes("renderTooltip");},
+    get Spinner() {return BdApi.Components?.Spinner ?? WebpackModules.getByDisplayName("Spinner");},
 
     /* Forms */
     get FormTitle() {return WebpackModules.getByDisplayName("FormTitle");},
@@ -200,11 +200,11 @@ export default Utilities.memoizeObject({
     get FormNotice() {return WebpackModules.getByDisplayName("FormNotice");},
 
     /* Scrollers */
-    get ScrollerThin() {return WebpackModules.getByProps("ScrollerThin").ScrollerThin;},
-    get ScrollerAuto() {return WebpackModules.getByProps("ScrollerAuto").ScrollerAuto;},
-    get AdvancedScrollerThin() {return WebpackModules.getByProps("AdvancedScrollerThin").AdvancedScrollerThin;},
-    get AdvancedScrollerAuto() {return WebpackModules.getByProps("AdvancedScrollerAuto").AdvancedScrollerAuto;},
-    get AdvancedScrollerNone() {return WebpackModules.getByProps("AdvancedScrollerNone").AdvancedScrollerNone;},
+    get ScrollerThin() {return WebpackModules.getByProps("ScrollerThin")?.ScrollerThin;},
+    get ScrollerAuto() {return WebpackModules.getByProps("ScrollerAuto")?.ScrollerAuto;},
+    get AdvancedScrollerThin() {return WebpackModules.getByProps("AdvancedScrollerThin")?.AdvancedScrollerThin;},
+    get AdvancedScrollerAuto() {return WebpackModules.getByProps("AdvancedScrollerAuto")?.AdvancedScrollerAuto;},
+    get AdvancedScrollerNone() {return WebpackModules.getByProps("AdvancedScrollerNone")?.AdvancedScrollerNone;},
 
     /* Settings */
     get SettingsWrapper() {return WebpackModules.getModule(m => m?.render?.toString?.().includes("required") && m?.render?.toString?.().includes("titleClassName"), {searchExports: true});},
@@ -212,7 +212,7 @@ export default Utilities.memoizeObject({
     get SettingsDivider() {return WebpackModules.getModule(m => !m.defaultProps && m.prototype && m.prototype.render && m.prototype.render.toString().includes("default.divider"));},
 
     get ColorPicker() {return WebpackModules.getModule(m => m?.displayName === "ColorPicker" && m?.defaultProps);},
-    get Dropdown() {return WebpackModules.getByProps("SingleSelect").SingleSelect;},
+    get Dropdown() {return BdApi.Components?.Dropdown ?? WebpackModules.getByProps("SingleSelect")?.SingleSelect;},
     get Keybind() {return WebpackModules.getByPrototypes("handleComboChange");},
     get RadioGroup() {return WebpackModules.getModule(m => m?.Sizes && m?.toString?.().includes("radioItemClassName"), {searchExports: true});},
     get Slider() {return WebpackModules.getModule(m => m?.defaultProps?.maxValue == 100 && m?.prototype?.renderMark, {searchExports: true});},

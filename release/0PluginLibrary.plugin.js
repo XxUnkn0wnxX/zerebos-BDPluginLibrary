@@ -247,6 +247,7 @@ const getRaw = function(prop) {
 
 const getClass = function(prop) {
     if (!this.hasOwnProperty(prop)) return "";
+    if (typeof this[prop] !== "string") return this[prop];
     return this[prop].split(" ")[0];
 };
 
@@ -265,17 +266,30 @@ const DiscordModules = new Proxy(_discordclassmodules__WEBPACK_IMPORTED_MODULE_0
     get: function(list, item) {
         if (item == "getRaw" || item == "getClass") return (module, prop) => DiscordModules[module][item]([prop]);
         if (list[item] === undefined) return new Proxy({}, {get: function() {return "";}});
-        return new Proxy(list[item], {
-            get: function(obj, prop) {
-                if (prop == "getRaw") return getRaw.bind(obj);
-                if (prop == "getClass") return getClass.bind(obj);
-                if (!obj.hasOwnProperty(prop)) return "";
-                return new _domtools__WEBPACK_IMPORTED_MODULE_1__["default"].ClassName(obj[prop]);
+        const source = list[item];
+        return new Proxy({}, {
+            get: function(_, prop) {
+                if (prop == "getRaw") return getRaw.bind(source);
+                if (prop == "getClass") return getClass.bind(source);
+                if (!source || !Object.prototype.hasOwnProperty.call(source, prop)) return "";
+                if (typeof source[prop] !== "string") return source[prop];
+                return new _domtools__WEBPACK_IMPORTED_MODULE_1__["default"].ClassName(source[prop]);
+            },
+            ownKeys: function() {
+                return source ? Reflect.ownKeys(source) : [];
+            },
+            getOwnPropertyDescriptor: function(_, prop) {
+                if (!source || !Object.prototype.hasOwnProperty.call(source, prop)) return undefined;
+                return {
+                    configurable: true,
+                    enumerable: true
+                };
             }
         });
     }
 });
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (DiscordModules);
+
 
 /***/ }),
 
@@ -375,7 +389,7 @@ __webpack_require__.r(__webpack_exports__);
 
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (_utilities__WEBPACK_IMPORTED_MODULE_0__["default"].memoizeObject({
     get React() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByProps("createElement", "cloneElement");},
-    get ReactDOM() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByProps("render", "findDOMNode");},
+    get ReactDOM() {return BdApi.ReactDOM ?? _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByProps("createPortal", "flushSync") ?? _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByProps("render", "findDOMNode");},
     get Events() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByPrototypes("setMaxListeners", "emit");},
 
     /* Guild Info, Stores, and Utilities */
@@ -435,7 +449,7 @@ __webpack_require__.r(__webpack_exports__);
     get ColorShader() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByProps("darken");},
     get TinyColor() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByPrototypes("toRgb");},
     get ClassResolver() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByProps("getClass");},
-    get ButtonData() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getModule(m => m.BorderColors, {searchExports: true});},
+    get ButtonData() {return BdApi.Components?.Button ?? _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getModule(m => m.BorderColors, {searchExports: true});},
     get NavigationUtils() {
         return {
             transitionToGuild: _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByProps("transitionToGuildSync")?.transitionToGuildSync,
@@ -548,16 +562,16 @@ __webpack_require__.r(__webpack_exports__);
 
     /* Misc */
     get ExternalLink() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByRegex(/trusted/);},
-    get TextElement() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getModule(m => m?.Sizes?.SIZE_32 && m.Colors);},
+    get TextElement() {return BdApi.Components?.Text ?? _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getModule(m => m?.Sizes?.SIZE_32 && m.Colors);},
     get Anchor() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByDisplayName("Anchor");},
-    get Flex() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByDisplayName("Flex");},
+    get Flex() {return BdApi.Components?.Flex ?? _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByDisplayName("Flex");},
     get FlexChild() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByProps("Child");},
     get Clickable() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByDisplayName("Clickable");},
     get Titles() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByProps("Tags", "Sizes");},
     get HeaderBar() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByDisplayName("HeaderBar");},
     get TabBar() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByDisplayName("TabBar");},
-    get Tooltip() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByPrototypes("renderTooltip");},
-    get Spinner() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByDisplayName("Spinner");},
+    get Tooltip() {return BdApi.Components?.Tooltip ?? _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByPrototypes("renderTooltip");},
+    get Spinner() {return BdApi.Components?.Spinner ?? _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByDisplayName("Spinner");},
 
     /* Forms */
     get FormTitle() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByDisplayName("FormTitle");},
@@ -565,11 +579,11 @@ __webpack_require__.r(__webpack_exports__);
     get FormNotice() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByDisplayName("FormNotice");},
 
     /* Scrollers */
-    get ScrollerThin() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByProps("ScrollerThin").ScrollerThin;},
-    get ScrollerAuto() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByProps("ScrollerAuto").ScrollerAuto;},
-    get AdvancedScrollerThin() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByProps("AdvancedScrollerThin").AdvancedScrollerThin;},
-    get AdvancedScrollerAuto() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByProps("AdvancedScrollerAuto").AdvancedScrollerAuto;},
-    get AdvancedScrollerNone() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByProps("AdvancedScrollerNone").AdvancedScrollerNone;},
+    get ScrollerThin() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByProps("ScrollerThin")?.ScrollerThin;},
+    get ScrollerAuto() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByProps("ScrollerAuto")?.ScrollerAuto;},
+    get AdvancedScrollerThin() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByProps("AdvancedScrollerThin")?.AdvancedScrollerThin;},
+    get AdvancedScrollerAuto() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByProps("AdvancedScrollerAuto")?.AdvancedScrollerAuto;},
+    get AdvancedScrollerNone() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByProps("AdvancedScrollerNone")?.AdvancedScrollerNone;},
 
     /* Settings */
     get SettingsWrapper() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getModule(m => m?.render?.toString?.().includes("required") && m?.render?.toString?.().includes("titleClassName"), {searchExports: true});},
@@ -577,7 +591,7 @@ __webpack_require__.r(__webpack_exports__);
     get SettingsDivider() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getModule(m => !m.defaultProps && m.prototype && m.prototype.render && m.prototype.render.toString().includes("default.divider"));},
 
     get ColorPicker() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getModule(m => m?.displayName === "ColorPicker" && m?.defaultProps);},
-    get Dropdown() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByProps("SingleSelect").SingleSelect;},
+    get Dropdown() {return BdApi.Components?.Dropdown ?? _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByProps("SingleSelect")?.SingleSelect;},
     get Keybind() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getByPrototypes("handleComboChange");},
     get RadioGroup() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getModule(m => m?.Sizes && m?.toString?.().includes("radioItemClassName"), {searchExports: true});},
     get Slider() {return _webpackmodules__WEBPACK_IMPORTED_MODULE_1__["default"].getModule(m => m?.defaultProps?.maxValue == 100 && m?.prototype?.renderMark, {searchExports: true});},
@@ -606,11 +620,13 @@ __webpack_require__.r(__webpack_exports__);
 
 const getSelectorAll = function(prop) {
     if (!this.hasOwnProperty(prop)) return "";
+    if (typeof this[prop] !== "string") return this[prop];
     return `.${this[prop].split(" ").join(".")}`;
 };
 
 const getSelector = function(prop) {
     if (!this.hasOwnProperty(prop)) return "";
+    if (typeof this[prop] !== "string") return this[prop];
     return `.${this[prop].split(" ")[0]}`;
 };
 
@@ -629,18 +645,31 @@ const DiscordSelectors = new Proxy(_discordclassmodules__WEBPACK_IMPORTED_MODULE
     get: function(list, item) {
         if (item == "getSelectorAll" || item == "getSelector") return (module, prop) => DiscordSelectors[module][item]([prop]);
         if (list[item] === undefined) return new Proxy({}, {get: function() {return "";}});
-        return new Proxy(list[item], {
-            get: function(obj, prop) {
-                if (prop == "getSelectorAll") return getSelectorAll.bind(obj);
-                if (prop == "getSelector") return getSelector.bind(obj);
-                if (!obj.hasOwnProperty(prop)) return "";
-                return new _domtools__WEBPACK_IMPORTED_MODULE_1__["default"].Selector(obj[prop]);
+        const source = list[item];
+        return new Proxy({}, {
+            get: function(_, prop) {
+                if (prop == "getSelectorAll") return getSelectorAll.bind(source);
+                if (prop == "getSelector") return getSelector.bind(source);
+                if (!source || !Object.prototype.hasOwnProperty.call(source, prop)) return "";
+                if (typeof source[prop] !== "string") return source[prop];
+                return new _domtools__WEBPACK_IMPORTED_MODULE_1__["default"].Selector(source[prop]);
+            },
+            ownKeys: function() {
+                return source ? Reflect.ownKeys(source) : [];
+            },
+            getOwnPropertyDescriptor: function(_, prop) {
+                if (!source || !Object.prototype.hasOwnProperty.call(source, prop)) return undefined;
+                return {
+                    configurable: true,
+                    enumerable: true
+                };
             }
         });
     }
 });
 
 /* harmony default export */ const __WEBPACK_DEFAULT_EXPORT__ = (DiscordSelectors);
+
 
 /***/ }),
 
@@ -4843,6 +4872,23 @@ class SettingField extends _structs_listenable__WEBPACK_IMPORTED_MODULE_0__["def
 
     /** Fired when root node added to DOM */
     onAdded() {
+        if (typeof modules__WEBPACK_IMPORTED_MODULE_1__.DiscordModules.ReactDOM?.createRoot === "function") {
+            this._reactRoot = modules__WEBPACK_IMPORTED_MODULE_1__.DiscordModules.ReactDOM.createRoot(this.getElement());
+            this._reactRoot.render(modules__WEBPACK_IMPORTED_MODULE_1__.DiscordModules.React.createElement(ReactSetting, Object.assign({
+                title: this.name,
+                type: this.type,
+                note: this.note,
+            }, this.props, {
+                ref: instance => {
+                    if (!instance || !this.props.onChange || this._didBindOnChange) return;
+                    this._didBindOnChange = true;
+                    instance.props.onChange = this.props.onChange(instance);
+                    instance.forceUpdate();
+                }
+            })));
+            return;
+        }
+
         const reactElement = modules__WEBPACK_IMPORTED_MODULE_1__.DiscordModules.ReactDOM.render(modules__WEBPACK_IMPORTED_MODULE_1__.DiscordModules.React.createElement(ReactSetting, Object.assign({
             title: this.name,
             type: this.type,
@@ -4855,6 +4901,12 @@ class SettingField extends _structs_listenable__WEBPACK_IMPORTED_MODULE_0__["def
 
     /** Fired when root node removed from DOM */
     onRemoved() {
+        this._didBindOnChange = false;
+        if (this._reactRoot) {
+            this._reactRoot.unmount();
+            this._reactRoot = null;
+            return;
+        }
         modules__WEBPACK_IMPORTED_MODULE_1__.DiscordModules.ReactDOM.unmountComponentAtNode(this.getElement());
     }
 }
@@ -4867,7 +4919,11 @@ const TITLE = modules__WEBPACK_IMPORTED_MODULE_1__.WebpackModules.getByProps("ti
 class ReactSetting extends modules__WEBPACK_IMPORTED_MODULE_1__.DiscordModules.React.Component {
     get noteElement() {
         const className = this.props.noteOnTop ? modules__WEBPACK_IMPORTED_MODULE_1__.DiscordClasses.Margins.marginBottom8 : modules__WEBPACK_IMPORTED_MODULE_1__.DiscordClasses.Margins.marginTop8;
-        return modules__WEBPACK_IMPORTED_MODULE_1__.DiscordModules.React.createElement(modules__WEBPACK_IMPORTED_MODULE_1__.DiscordModules.SettingsNote, {children: this.props.note, type: "description", className: className.toString()});
+        if (modules__WEBPACK_IMPORTED_MODULE_1__.DiscordModules.SettingsNote) {
+            return modules__WEBPACK_IMPORTED_MODULE_1__.DiscordModules.React.createElement(modules__WEBPACK_IMPORTED_MODULE_1__.DiscordModules.SettingsNote, {children: this.props.note, type: "description", className: className.toString()});
+        }
+
+        return modules__WEBPACK_IMPORTED_MODULE_1__.DiscordModules.React.createElement("div", {className: `bd-setting-note ${className}`.trim()}, this.props.note);
     }
 
     get dividerElement() {return modules__WEBPACK_IMPORTED_MODULE_1__.DiscordModules.React.createElement("div", {className: modules__WEBPACK_IMPORTED_MODULE_1__.DiscordClasses.Dividers.divider.add(modules__WEBPACK_IMPORTED_MODULE_1__.DiscordClasses.Margins.marginTop20).toString()});}
@@ -4889,17 +4945,29 @@ class ReactSetting extends modules__WEBPACK_IMPORTED_MODULE_1__.DiscordModules.R
             );
         }
         
-        return ce(modules__WEBPACK_IMPORTED_MODULE_1__.DiscordModules.SettingsWrapper, {
-            className: modules__WEBPACK_IMPORTED_MODULE_1__.DiscordClasses.Margins.marginTop20.toString(),
-            title: this.props.title,
-            children: [
-                this.props.noteOnTop ? this.noteElement : SettingElement,
-                this.props.noteOnTop ? SettingElement : this.noteElement,
-                this.dividerElement
-            ]
-        });
+        if (modules__WEBPACK_IMPORTED_MODULE_1__.DiscordModules.SettingsWrapper) {
+            return ce(modules__WEBPACK_IMPORTED_MODULE_1__.DiscordModules.SettingsWrapper, {
+                className: modules__WEBPACK_IMPORTED_MODULE_1__.DiscordClasses.Margins.marginTop20.toString(),
+                title: this.props.title,
+                children: [
+                    this.props.noteOnTop ? this.noteElement : SettingElement,
+                    this.props.noteOnTop ? SettingElement : this.noteElement,
+                    this.dividerElement
+                ]
+            });
+        }
+
+        return ce("div", {className: `bd-setting-item ${modules__WEBPACK_IMPORTED_MODULE_1__.DiscordClasses.Margins.marginTop20}`.trim()}, [
+            ce("div", {className: "bd-setting-header"},
+                ce("label", {className: TITLE}, this.props.title)
+            ),
+            this.props.noteOnTop ? this.noteElement : SettingElement,
+            this.props.noteOnTop ? SettingElement : this.noteElement,
+            this.dividerElement
+        ]);
     }
 }
+
 
 
 
@@ -5870,11 +5938,125 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+const TOOLTIP_STYLE_ID = "ZLibraryTooltipFallback";
+const fallbackClasses = {
+    top: "zpl-tooltip-top",
+    right: "zpl-tooltip-right",
+    bottom: "zpl-tooltip-bottom",
+    left: "zpl-tooltip-left",
+    black: "zpl-tooltip-black",
+    brand: "zpl-tooltip-brand",
+    green: "zpl-tooltip-green",
+    grey: "zpl-tooltip-grey",
+    red: "zpl-tooltip-red",
+    yellow: "zpl-tooltip-yellow",
+    layer: "zpl-tooltip-layer",
+    tooltip: "zpl-tooltip",
+    tooltipPointer: "zpl-tooltip-pointer",
+    tooltipContent: "zpl-tooltip-content",
+    tooltipDisablePointerEvents: "zpl-tooltip-disable-pointer-events",
+    disabledPointerEvents: "zpl-tooltip-disable-pointer-events"
+};
+
+const fallbackCSS = `
+    .zpl-tooltip-layer {
+        position: fixed;
+        z-index: 1002;
+        pointer-events: none;
+    }
+
+    .zpl-tooltip {
+        position: relative;
+        max-width: 240px;
+        padding: 8px 12px;
+        border-radius: 5px;
+        font-size: 14px;
+        line-height: 1.2;
+        box-shadow: var(--elevation-high, 0 8px 16px rgba(0, 0, 0, 0.24));
+        background: var(--background-floating, #111214);
+        color: var(--text-normal, #fff);
+    }
+
+    .zpl-tooltip-pointer {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        background: inherit;
+        transform: rotate(45deg);
+    }
+
+    .zpl-tooltip-top .zpl-tooltip-pointer {
+        bottom: -5px;
+        left: calc(50% - 5px);
+    }
+
+    .zpl-tooltip-bottom .zpl-tooltip-pointer {
+        top: -5px;
+        left: calc(50% - 5px);
+    }
+
+    .zpl-tooltip-left .zpl-tooltip-pointer {
+        right: -5px;
+        top: calc(50% - 5px);
+    }
+
+    .zpl-tooltip-right .zpl-tooltip-pointer {
+        left: -5px;
+        top: calc(50% - 5px);
+    }
+
+    .zpl-tooltip-brand {
+        background: var(--brand-500, #5865f2);
+        color: #fff;
+    }
+
+    .zpl-tooltip-green {
+        background: var(--status-positive, #248046);
+        color: #fff;
+    }
+
+    .zpl-tooltip-grey {
+        background: var(--background-secondary, #2b2d31);
+        color: var(--text-normal, #fff);
+    }
+
+    .zpl-tooltip-red {
+        background: var(--status-danger, #da373c);
+        color: #fff;
+    }
+
+    .zpl-tooltip-yellow {
+        background: var(--status-warning, #f0b232);
+        color: #111214;
+    }
+
+    .zpl-tooltip-disable-pointer-events {
+        pointer-events: none;
+    }
+`;
+
+const ensureFallbackStyles = function() {
+    if (document.getElementById(TOOLTIP_STYLE_ID)) return;
+    modules__WEBPACK_IMPORTED_MODULE_0__.DOMTools.addStyle(TOOLTIP_STYLE_ID, fallbackCSS);
+};
+
+const classString = function(value) {
+    if (!value) return "";
+    if (typeof value === "string") return value;
+    return value.toString();
+};
+
+const getTooltipClass = function(prop) {
+    return classString(modules__WEBPACK_IMPORTED_MODULE_0__.DiscordClasses.Tooltips?.[prop]) || fallbackClasses[prop] || "";
+};
+
+const getLayerClass = function(prop) {
+    return classString(modules__WEBPACK_IMPORTED_MODULE_0__.DiscordClasses.TooltipLayers?.[prop]) || fallbackClasses[prop] || "";
+};
+
 const getClass = function(sideOrColor) {
     const upperCase = sideOrColor[0].toUpperCase() + sideOrColor.slice(1);
-    const tooltipClass = modules__WEBPACK_IMPORTED_MODULE_0__.DiscordClasses.Tooltips[`tooltip${upperCase}`];
-    if (tooltipClass) return tooltipClass.value;
-    return null;
+    return getTooltipClass(`tooltip${upperCase}`) || fallbackClasses[sideOrColor.toLowerCase()] || "";
 };
 
 const classExists = function(sideOrColor) {
@@ -5908,6 +6090,7 @@ class Tooltip {
      */
     constructor(node, text, options = {}) {
         const {style = "black", side = "top", preventFlip = false, isTimestamp = false, disablePointerEvents = false, disabled = false} = options;
+        ensureFallbackStyles();
         this.node = modules__WEBPACK_IMPORTED_MODULE_0__.DOMTools.resolveElement(node);
         this.label = text;
         this.style = style.toLowerCase();
@@ -5921,14 +6104,21 @@ class Tooltip {
         if (!classExists(this.side)) return modules__WEBPACK_IMPORTED_MODULE_0__.Logger.err("Tooltip", `Side ${this.side} does not exist.`);
         if (!classExists(this.style)) return modules__WEBPACK_IMPORTED_MODULE_0__.Logger.err("Tooltip", `Style ${this.style} does not exist.`);
 
-        this.element = modules__WEBPACK_IMPORTED_MODULE_0__.DOMTools.createElement(`<div class="${modules__WEBPACK_IMPORTED_MODULE_0__.DiscordClasses.TooltipLayers.layer}">`);
-        this.tooltipElement = modules__WEBPACK_IMPORTED_MODULE_0__.DOMTools.createElement(`<div class="${modules__WEBPACK_IMPORTED_MODULE_0__.DiscordClasses.Tooltips.tooltip} ${getClass(this.style)}"><div class="${modules__WEBPACK_IMPORTED_MODULE_0__.DiscordClasses.Tooltips.tooltipPointer}"></div><div class="${modules__WEBPACK_IMPORTED_MODULE_0__.DiscordClasses.Tooltips.tooltipContent}">${this.label}</div></div>`);
+        this.layerClass = getLayerClass("layer");
+        this.tooltipClass = getTooltipClass("tooltip");
+        this.tooltipPointerClass = getTooltipClass("tooltipPointer");
+        this.tooltipContentClass = getTooltipClass("tooltipContent");
+        this.tooltipDisablePointerEventsClass = getTooltipClass("tooltipDisablePointerEvents");
+        this._className = `${this.tooltipClass} ${getClass(this.style)}`.trim();
+
+        this.element = modules__WEBPACK_IMPORTED_MODULE_0__.DOMTools.createElement(`<div class="${this.layerClass}">`);
+        this.tooltipElement = modules__WEBPACK_IMPORTED_MODULE_0__.DOMTools.createElement(`<div class="${this._className}"><div class="${this.tooltipPointerClass}"></div><div class="${this.tooltipContentClass}">${this.label}</div></div>`);
         this.labelElement = this.tooltipElement.childNodes[1];
         this.element.append(this.tooltipElement);
 
         if (this.disablePointerEvents) {
-            this.element.classList.add(modules__WEBPACK_IMPORTED_MODULE_0__.DiscordClasses.TooltipLayers.disabledPointerEvents);
-            this.tooltipElement.classList.add(modules__WEBPACK_IMPORTED_MODULE_0__.DiscordClasses.Tooltips.tooltipDisablePointerEvents);
+            this.element.classList.add(getLayerClass("disabledPointerEvents"));
+            if (this.tooltipDisablePointerEventsClass) this.tooltipElement.classList.add(this.tooltipDisablePointerEventsClass);
         }
         if (this.isTimestamp) this.tooltipElement.classList.add(modules__WEBPACK_IMPORTED_MODULE_0__.WebpackModules.getByProps("timestampTooltip").timestampTooltip);
 
@@ -5947,7 +6137,10 @@ class Tooltip {
     static create(node, text, options = {}) {return new Tooltip(node, text, options);}
 
     /** Container where the tooltip will be appended. */
-    get container() {return document.querySelector(modules__WEBPACK_IMPORTED_MODULE_0__.DiscordSelectors.App.app.sibling(modules__WEBPACK_IMPORTED_MODULE_0__.DiscordSelectors.TooltipLayers.layerContainer));}
+    get container() {
+        const selector = modules__WEBPACK_IMPORTED_MODULE_0__.DiscordSelectors.App?.app?.sibling?.(modules__WEBPACK_IMPORTED_MODULE_0__.DiscordSelectors.TooltipLayers?.layerContainer);
+        return selector ? (document.querySelector(String(selector)) ?? document.body) : document.body;
+    }
     /** Boolean representing if the tooltip will fit on screen above the element */
     get canShowAbove() {return this.node.getBoundingClientRect().top - this.element.offsetHeight >= 0;}
     /** Boolean representing if the tooltip will fit on screen below the element */
@@ -5971,8 +6164,8 @@ class Tooltip {
         /** Don't reshow if already active */
         if (this.active) return;
         this.active = true;
-        this.tooltipElement.className = `${modules__WEBPACK_IMPORTED_MODULE_0__.DiscordClasses.Tooltips.tooltip} ${getClass(this.style)}`;
-        if (this.disablePointerEvents) this.tooltipElement.classList.add(modules__WEBPACK_IMPORTED_MODULE_0__.DiscordClasses.Tooltips.tooltipDisablePointerEvents);
+        this.tooltipElement.className = this._className;
+        if (this.disablePointerEvents && this.tooltipDisablePointerEventsClass) this.tooltipElement.classList.add(this.tooltipDisablePointerEventsClass);
         if (this.isTimestamp) this.tooltipElement.classList.add(modules__WEBPACK_IMPORTED_MODULE_0__.WebpackModules.getByProps("timestampTooltip").timestampTooltip);
         this.labelElement.textContent = this.label;
         this.container.append(this.element);
@@ -6053,6 +6246,7 @@ class Tooltip {
         this.element.style.setProperty("top", toPx(nodecenter - (this.element.offsetHeight / 2)));
     }
 }
+
 
 /***/ }),
 
@@ -6214,11 +6408,19 @@ class PluginLibrary extends _structs_plugin__WEBPACK_IMPORTED_MODULE_2__["defaul
          * instance property.
          */
 
-        // Temporarily disable toasts so people don't get bombarded
-        const wasEnabled = BdApi?.isSettingEnabled("settings", "general", "showToasts");
-        if (wasEnabled) BdApi?.disableSetting("settings", "general", "showToasts");
-        this._reloadPlugins();
-        if (wasEnabled) BdApi?.enableSetting("settings", "general", "showToasts");
+        // Older BetterDiscord builds exposed settings toggles on BdApi directly.
+        // Newer builds removed those methods, so fail soft and just reload plugins.
+        const canToggleToasts = typeof BdApi?.isSettingEnabled === "function"
+            && typeof BdApi?.disableSetting === "function"
+            && typeof BdApi?.enableSetting === "function";
+        const wasEnabled = canToggleToasts ? BdApi.isSettingEnabled("settings", "general", "showToasts") : false;
+        try {
+            if (wasEnabled) BdApi.disableSetting("settings", "general", "showToasts");
+            this._reloadPlugins();
+        }
+        finally {
+            if (wasEnabled) BdApi.enableSetting("settings", "general", "showToasts");
+        }
     }
 
     _reloadPlugins() {

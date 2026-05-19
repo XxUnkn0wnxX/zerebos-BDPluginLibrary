@@ -47,11 +47,19 @@ class PluginLibrary extends BasePlugin {
          * instance property.
          */
 
-        // Temporarily disable toasts so people don't get bombarded
-        const wasEnabled = BdApi?.isSettingEnabled("settings", "general", "showToasts");
-        if (wasEnabled) BdApi?.disableSetting("settings", "general", "showToasts");
-        this._reloadPlugins();
-        if (wasEnabled) BdApi?.enableSetting("settings", "general", "showToasts");
+        // Older BetterDiscord builds exposed settings toggles on BdApi directly.
+        // Newer builds removed those methods, so fail soft and just reload plugins.
+        const canToggleToasts = typeof BdApi?.isSettingEnabled === "function"
+            && typeof BdApi?.disableSetting === "function"
+            && typeof BdApi?.enableSetting === "function";
+        const wasEnabled = canToggleToasts ? BdApi.isSettingEnabled("settings", "general", "showToasts") : false;
+        try {
+            if (wasEnabled) BdApi.disableSetting("settings", "general", "showToasts");
+            this._reloadPlugins();
+        }
+        finally {
+            if (wasEnabled) BdApi.enableSetting("settings", "general", "showToasts");
+        }
     }
 
     _reloadPlugins() {
