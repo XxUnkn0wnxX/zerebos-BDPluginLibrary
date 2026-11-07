@@ -2,18 +2,19 @@
 > This library has reached end of life and is now considered deprecated and discontinued. It is recommended to convert over to using BetterDiscord's built-in API. If you find there are features missing, open a feature request in the BetterDiscord repository.
 
 > [!WARNING]
-> This fork is only being kept on limited life support for personal use and older plugins that still depend on ZeresPluginLibrary.
-> Do not use this library for new plugin development. These updates are only meant to keep legacy plugins running where practical, not to restore full long-term support.
+> **This fork has been permanently retired by its maintainer.** No further releases, maintenance, or support will be provided. This repository is retained for historical reference.
+>
+> This retirement does not mean external plugins have been migrated or no longer depend on ZeresPluginLibrary.
 
 # ZeresPluginLibrary - [Download](https://betterdiscord.app/Download?id=9) 
 
-This is the repo for Zere's Plugin Library for BetterDiscord. You can follow development here. There will be more info and shit to come, but for now here ya go.
+This repository preserves historical source and usage documentation for Zere's Plugin Library for BetterDiscord.
 
 ## Library Documentation
 
 View the library documentation here: [https://zerebos.github.io/BDPluginLibrary/docs](https://zerebos.github.io/BDPluginLibrary/docs)
 
-The information below is just a quickstart guide and overview on using the build scripts provided.
+The setup and build instructions below are retained for historical reference and are no longer maintained or supported.
 
 ## Using The Library
 
